@@ -1,10 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Container, CircularProgress, Box, Typography, Button } from '@mui/material';
+import {
+  Container,
+  CircularProgress,
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Divider,
+  Tabs,
+  Tab,
+  Chip,
+  useTheme,
+  alpha,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  FilterList as FilterIcon,
+  Sort as SortIcon,
+} from '@mui/icons-material';
 import PickingList from '../components/PickingList/PickingList';
 import SearchBar from '../components/Search/SearchBar';
 import ProductSheetUpload from '../components/Upload/ProductSheetUpload';
 import { PickingList as PickingListType, Product } from '../types';
 import ImageService from '../services/imageService';
+import ProductList from '../components/ProductList/ProductList';
 
 const DEMO_PICKING_LIST: PickingListType = {
   id: "PL001",
@@ -33,11 +52,16 @@ const DEMO_PICKING_LIST: PickingListType = {
 };
 
 const PickingListPage: React.FC = () => {
+  const theme = useTheme();
+  const [activeTab, setActiveTab] = useState(0);
   const [pickingList, setPickingList] = useState<PickingListType>(DEMO_PICKING_LIST);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [showUpload, setShowUpload] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     const loadImages = async () => {
@@ -90,13 +114,41 @@ const PickingListPage: React.FC = () => {
     }));
   };
 
-  const handleUploadSuccess = (products: Product[]) => {
-    setPickingList((prev: PickingListType) => ({
-      ...prev,
-      items: products
-    }));
+  const handleUploadSuccess = (uploadedProducts: Product[]) => {
+    setProducts(prevProducts => [...prevProducts, ...uploadedProducts]);
     setShowUpload(false);
+    setLoading(false);
+    setError(null);
   };
+
+  const handleProductUpdate = (updatedProduct: Product) => {
+    setProducts(prevProducts =>
+      prevProducts.map(product =>
+        product.id === updatedProduct.id ? updatedProduct : product
+      )
+    );
+  };
+
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getStatusCount = (status: Product['status']) => {
+    return products.filter(product => product.status === status).length;
+  };
+
+  const sortedAndFilteredProducts = useMemo(() => {
+    return filteredProducts
+      .slice()
+      .sort((a, b) => {
+        if (sortOrder === 'asc') {
+          return a.name.localeCompare(b.name);
+        }
+        return b.name.localeCompare(a.name);
+      });
+  }, [filteredProducts, sortOrder]);
 
   if (loading) {
     return (
@@ -107,27 +159,143 @@ const PickingListPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ 
+        mb: 4, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 2
+      }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+          Picking List
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<FilterIcon />}
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+          >
+            Sort {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setShowUpload(!showUpload)}
+          >
+            {showUpload ? 'Cancel Upload' : 'Add Products'}
+          </Button>
+        </Box>
+      </Box>
+
+      {showUpload && (
+        <Paper 
+          sx={{ 
+            p: 3, 
+            mb: 3, 
+            border: `1px solid ${theme.palette.divider}`,
+            boxShadow: theme.shadows[2]
+          }}
+        >
+          <ProductSheetUpload 
+            onUploadSuccess={handleUploadSuccess}
+            setError={setError}
+            setLoading={setLoading}
+          />
+        </Paper>
+      )}
+
+      <Paper sx={{ mb: 3, overflow: 'hidden' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            sx={{ px: 2, pt: 1 }}
+          >
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <span>All Products</span>
+                  <Chip 
+                    size="small" 
+                    label={products.length}
+                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}
+                  />
+                </Box>
+              } 
+            />
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <span>Pending</span>
+                  <Chip 
+                    size="small" 
+                    label={getStatusCount('pending')}
+                    sx={{ bgcolor: alpha(theme.palette.warning.main, 0.1) }}
+                  />
+                </Box>
+              }
+            />
+            <Tab 
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <span>Picked</span>
+                  <Chip 
+                    size="small" 
+                    label={getStatusCount('picked')}
+                    sx={{ bgcolor: alpha(theme.palette.success.main, 0.1) }}
+                  />
+                </Box>
+              }
+            />
+          </Tabs>
+        </Box>
+
+        <Box sx={{ p: 3 }}>
+          <SearchBar 
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder="Search products..."
+          />
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 500 }}>
+              Products ({sortedAndFilteredProducts.length})
+            </Typography>
+            {searchQuery && (
+              <Typography variant="body2" color="text.secondary">
+                Showing results for "{searchQuery}"
+              </Typography>
+            )}
+          </Box>
+
+          {sortedAndFilteredProducts.length === 0 ? (
+            <Box sx={{ 
+              py: 8, 
+              textAlign: 'center',
+              bgcolor: alpha(theme.palette.primary.main, 0.02),
+              borderRadius: 1
+            }}>
+              <Typography color="text.secondary">
+                No products found
+              </Typography>
+            </Box>
+          ) : (
+            <ProductList 
+              products={sortedAndFilteredProducts}
+              onProductUpdate={handleProductUpdate}
+            />
+          )}
+        </Box>
+      </Paper>
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">
           Picking List
         </Typography>
-        <Button
-          variant="contained"
-          onClick={() => setShowUpload(!showUpload)}
-        >
-          {showUpload ? 'Hide Upload' : 'Upload List'}
-        </Button>
       </Box>
-      
-      {showUpload && (
-        <ProductSheetUpload onUploadSuccess={handleUploadSuccess} />
-      )}
-
-      <SearchBar 
-        onSearch={handleSearch}
-        onFilter={handleFilter}
-      />
 
       {filteredItems.length === 0 ? (
         <Box sx={{ 
