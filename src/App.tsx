@@ -16,6 +16,7 @@ import {
 import { Product } from './types';
 import ProductSheetUpload from './components/Upload/ProductSheetUpload';
 import ProductList from './components/ProductList/ProductList';
+import { HashRouter } from 'react-router-dom';
 
 // Create a custom theme
 const theme = createTheme({
@@ -92,80 +93,82 @@ const App: React.FC = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <AppBar position="sticky" elevation={0}>
-          <Toolbar>
-            <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
-              Bishop's Picker
-            </Typography>
-          </Toolbar>
-        </AppBar>
-
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-          <Paper sx={{ p: 3, mb: 4 }}>
-            <Typography variant="h5" component="h2" gutterBottom>
-              Upload Products
-            </Typography>
-            <Typography color="text.secondary" paragraph>
-              Upload your product sheet or image to get started. Supported formats: Excel (.xlsx, .xls), CSV, Images (.jpg, .jpeg, .png)
-            </Typography>
-            <ProductSheetUpload 
-              onUploadSuccess={handleUploadSuccess}
-              setError={setError}
-              setLoading={setLoading}
-            />
-          </Paper>
-
-          {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-              <CircularProgress />
-            </Box>
-          )}
-
-          {products.length > 0 && (
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" component="h2" gutterBottom>
-                Product List
+    <HashRouter>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+          <AppBar position="sticky" elevation={0}>
+            <Toolbar>
+              <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>
+                Bishop's Picker
               </Typography>
-              <ProductList 
-                products={products} 
-                onProductUpdate={handleProductUpdate}
+            </Toolbar>
+          </AppBar>
+
+          <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Paper sx={{ p: 3, mb: 4 }}>
+              <Typography variant="h5" component="h2" gutterBottom>
+                Upload Products
+              </Typography>
+              <Typography color="text.secondary" paragraph>
+                Upload your product sheet or image to get started. Supported formats: Excel (.xlsx, .xls), CSV, Images (.jpg, .jpeg, .png)
+              </Typography>
+              <ProductSheetUpload 
+                onUploadSuccess={handleUploadSuccess}
+                setError={setError}
+                setLoading={setLoading}
               />
             </Paper>
-          )}
-        </Container>
 
-        <Snackbar 
-          open={!!successMessage} 
-          autoHideDuration={6000} 
-          onClose={() => setSuccessMessage(null)}
-        >
-          <Alert 
-            onClose={() => setSuccessMessage(null)} 
-            severity="success" 
-            sx={{ width: '100%' }}
-          >
-            {successMessage}
-          </Alert>
-        </Snackbar>
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                <CircularProgress />
+              </Box>
+            )}
 
-        <Snackbar 
-          open={!!error} 
-          autoHideDuration={6000} 
-          onClose={() => setError(null)}
-        >
-          <Alert 
-            onClose={() => setError(null)} 
-            severity="error" 
-            sx={{ width: '100%' }}
+            {products.length > 0 && (
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h5" component="h2" gutterBottom>
+                  Product List
+                </Typography>
+                <ProductList 
+                  products={products} 
+                  onProductUpdate={handleProductUpdate}
+                />
+              </Paper>
+            )}
+          </Container>
+
+          <Snackbar 
+            open={!!successMessage} 
+            autoHideDuration={6000} 
+            onClose={() => setSuccessMessage(null)}
           >
-            {error}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </ThemeProvider>
+            <Alert 
+              onClose={() => setSuccessMessage(null)} 
+              severity="success" 
+              sx={{ width: '100%' }}
+            >
+              {successMessage}
+            </Alert>
+          </Snackbar>
+
+          <Snackbar 
+            open={!!error} 
+            autoHideDuration={6000} 
+            onClose={() => setError(null)}
+          >
+            <Alert 
+              onClose={() => setError(null)} 
+              severity="error" 
+              sx={{ width: '100%' }}
+            >
+              {error}
+            </Alert>
+          </Snackbar>
+        </Box>
+      </ThemeProvider>
+    </HashRouter>
   );
 };
 
